@@ -11,7 +11,7 @@ related_plan: ""
 # Plan: veřejná v0.1
 
 1. Oddělit a sanitizovat lokální funkce do balíčku.
-2. Nahradit TTS systémovým `say` a odstranit osobní infrastrukturu.
+2. Oddělit lokální OmniVoice TTS od osobní infrastruktury a nepřibalovat model ani hlas.
 3. Přidat privacy/governance/dokumentaci/překlady.
 4. Ověřit testy, lint, závislosti, licence a secrets.
 5. Publikovat jediný počáteční commit a zdrojový release.

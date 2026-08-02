@@ -2,7 +2,7 @@
 
 [Çeh dilindäki esasy README](../../README.md). M.I.K.E. Apple Silicon Mac üçin
 ýerli, açyk çeşmeli çeh ses kömekçisidir. Whisper gepleşigi tekste geçirýär,
-ýerli Ollama jogap berýär, macOS `say` bolsa ony okaýar. **0.1 alpha wersiýa:
+ýerli Ollama jogap berýär, ýerli OmniVoice bolsa ony seslendirýär. **0.1.1 alpha wersiýa:
 programma, panel we ses buýruklary çeh dilindedir. Bu interfeýsiň däl, doly
 gollanmanyň terjimesidir.** Gyssagly, lukmançylyk, hukuk ýa-da ýokary töwekgel
 kararlar üçin ulanmaň.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorch fallback üçin `.[voice,torch,overlay]` ulanyň. Whisper,
 Ollama we her modeliň öz ygtyýarnamasy hem şertleri bar.
+OmniVoice aýratyn `.venv-omnivoice` gurşawynda işleýär; kod Apache-2.0, ýöne
+deslapky model **CC-BY-NC we täjirçilik üçin däl**. Ol hyzmat ilkinji gezek
+başlanda ýüklener we repozitoriýa goşulmaýar.
 
 <!-- mike-doc:first-run -->
 ## Ilkinji başlangyç
@@ -51,6 +60,10 @@ we voiceprint öçük; telemetriýa ýok, raw audio saklanmaýar. Esasy meýdanl
 `assistant.model`, `stt.backend`, `stt.model`, `stt.device`, `server.port`,
 `[features]`. `MIKE_HOME` synagy aýyrýar; üýtgeýjiler `MIKE_*`.
 
+OmniVoice `tts.omnivoice_url = "http://127.0.0.1:8130"` ulanýar;
+`tts.model`, `tts.instruct`, `tts.num_steps` we `tts.speed` ses dizaýnyny
+dolandyrýar. Açyk server nusga audiony kabul etmeýär we sesi klonlamaýar.
+
 Voiceprint-i ýerli dörediň:
 `python -m mike.voiceprint /oz-sesinize/yol.wav`, soň
 `features.voiceprint = true` ediň. Diňe öz sesiňizi ýa-da açyk razylygy ulanyň.
@@ -71,6 +84,8 @@ Telemetriýa ýok. Dashboard, Ollama, baza, transkripsiýa we voiceprint ýerli.
 Raw audio deslapky ýagdaýda saklanmaýar; hususy SQLite tekst, jogap, açyk ýat we
 bahalary saklaýar. Açylan research diňe açyk soragy gözlege we saýlanan jemgyýetçilik
 HTTPS sahypalaryna iberýär. [PRIVACY.md](../../PRIVACY.md) serediň.
+OmniVoice hem ýerli: wagtlaýyn sintetiki WAV 600 režimde döredilýär, `afplay`-dan
+soň pozulýar we server nusga sesi kabul etmeýär.
 
 <!-- mike-doc:troubleshooting -->
 ## Meseleleri çözmek
@@ -80,6 +95,8 @@ barlaň. Tekst ýok bolsa, Microphone we `stt.device` barlaň; boş baha ulgam
 girişidir. 8140 meşgul bolsa, `server.port` üýtgediň. Köne Whisper Flow/MAJKA-ny
 öz guraly bilen duruzyň. Loglar `~/Library/Application Support/MIKE/logs/` içinde;
 paýlaşmazdan öň şahsy maglumatlary aýyryň.
+OmniVoice jogap bermese, `./scripts/omnivoice_service.sh status` işledip,
+`omnivoice-error.log` we `tts.omnivoice_url` barlaň.
 
 <!-- mike-doc:uninstall -->
 ## Aýyrmak
@@ -88,11 +105,15 @@ paýlaşmazdan öň şahsy maglumatlary aýyryň.
 `io.github.emperorkundis.mike` aýrylýar; maglumat dikeltmek üçin galýar. Doly
 pozmak üçin backup-y barlap `~/Library/Application Support/MIKE` bukjasyny Trash-a
 geçiriň. Köne gurnawlar üýtgemeýär.
+`./scripts/omnivoice_service.sh uninstall` diňe aýratyn
+`io.github.emperorkundis.mike.omnivoice` LaunchAgent-i aýyrýar.
 
 <!-- mike-doc:warning -->
 ## Çäklendirmeler we ygtyýarnamalar
 
-v0.1 diňe Apple Silicon macOS we çeh runtime goldaýar. Tekst we jogap ýalňyş
+v0.1.1 diňe Apple Silicon macOS we çeh runtime goldaýar. Tekst we jogap ýalňyş
 bolup biler; möhüm hereketi adam gözegçilik edýär. Kod MIT, atribusiýa
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Modeller,
-baglylyklar we web çeşmeleriň öz ygtyýarnamasy bar; binary we PyPI ýok.
+baglylyklar we web çeşmeleriň öz ygtyýarnamasy bar; binary we PyPI ýok. Deslapky
+OmniVoice modeli CC-BY-NC we täjirçilik üçin däl; rugsatsyz ses meňzetmek we
+aldaw gadagandyr.

@@ -76,8 +76,9 @@ def create_app(config: Config, database: Database, assistant: Assistant) -> Fast
         _local_request(request)
         return {
             "ok": True,
-            "version": "0.1.0",
+            "version": "0.1.1",
             "host": config.server.host,
+            "tts": {"provider": "omnivoice", "enabled": config.tts.enabled},
             "features": {
                 "research": config.features.research,
                 "terminal": config.features.terminal,

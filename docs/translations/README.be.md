@@ -2,7 +2,7 @@
 
 [Кананічны README па-чэшску](../../README.md). M.I.K.E. — лакальны адкрыты
 чэшскі галасавы памочнік для Mac з Apple Silicon. Whisper распазнае маўленне,
-лакальная Ollama стварае адказ, а macOS `say` агучвае яго. **Версія 0.1 — alpha:
+лакальная Ollama стварае адказ, а лакальны OmniVoice агучвае яго. **Версія 0.1.1 — alpha:
 праграма, панэль і галасавыя каманды працуюць па-чэшску. Гэта поўны пераклад
 інструкцыі, а не runtime.** Не выкарыстоўвайце памочнік для экстранных,
 медыцынскіх, юрыдычных або іншых рашэнняў высокай рызыкі.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 Для OpenAI Whisper/PyTorch fallback выкарыстоўвайце `.[voice,torch,overlay]`.
 Whisper, Ollama і кожная мадэль маюць асобныя ліцэнзіі і ўмовы.
+OmniVoice працуе ў асобным `.venv-omnivoice`; код мае ліцэнзію Apache-2.0, але
+стандартная мадэль — **CC-BY-NC і не для камерцыйнага выкарыстання**. Яна
+спампоўваецца пры першым запуску службы і не ўваходзіць у рэпазіторый.
 
 <!-- mike-doc:first-run -->
 ## Першы запуск
@@ -52,6 +61,10 @@ terminal і voiceprint выключаны; тэлеметрыі няма, сыр
 Асноўныя палі: `assistant.model`, `stt.backend`, `stt.model`, `stt.device`,
 `server.port`, `[features]`. `MIKE_HOME` ізалюе тэст; overrides маюць `MIKE_*`.
 
+OmniVoice выкарыстоўвае `tts.omnivoice_url = "http://127.0.0.1:8130"`; палі
+`tts.model`, `tts.instruct`, `tts.num_steps` і `tts.speed` кіруюць дызайнам
+голасу. Публічны сервер не прымае эталоннае аўдыя і не клануе голас.
+
 Стварыце voiceprint лакальна:
 `python -m mike.voiceprint /шлях/да/ўласнага-голасу.wav`, пасля ўключыце
 `features.voiceprint = true`. Выкарыстоўвайце толькі свой голас або відавочную
@@ -70,6 +83,8 @@ shell, pipe, перанакіраванне і запіс не падтрымл�
 ## Прыватнасць
 
 Тэлеметрыі няма. Панэль, Ollama, база, транскрыпцыя і voiceprint лакальныя.
+OmniVoice таксама лакальны: часовы сінтэтычны WAV мае рэжым 600 і выдаляецца
+пасля `afplay`; сервер не прымае эталонны голас.
 Сырое аўдыя па змаўчанні не запісваецца; прыватная SQLite захоўвае тэксты,
 адказы, яўную памяць і ацэнкі. Уключаны research адпраўляе толькі яўны запыт
 пошукавіку і выбраным публічным HTTPS-сайтам. Гл. [PRIVACY.md](../../PRIVACY.md).
@@ -82,6 +97,8 @@ shell, pipe, перанакіраванне і запіс не падтрымл�
 значэнне — сістэмны ўваход. Пры занятым 8140 змяніце `server.port`. Старую
 Whisper Flow/MAJKA спыняйце яе ўласным сродкам. Логі ў
 `~/Library/Application Support/MIKE/logs/`; выдаліце асабістыя даныя перад перадачай.
+Калі OmniVoice не працуе, выканайце `./scripts/omnivoice_service.sh status`,
+праверце `omnivoice-error.log` і `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## Выдаленне
@@ -90,11 +107,15 @@ Whisper Flow/MAJKA спыняйце яе ўласным сродкам. Логі
 LaunchAgent `io.github.emperorkundis.mike`, даныя захоўваюцца. Для поўнага
 выдалення пасля праверкі backup перанясіце `~/Library/Application Support/MIKE`
 у Сметніцу. Ранейшыя ўсталёўкі не закранаюцца.
+`./scripts/omnivoice_service.sh uninstall` выдаляе толькі асобны LaunchAgent
+`io.github.emperorkundis.mike.omnivoice`.
 
 <!-- mike-doc:warning -->
 ## Абмежаванні і ліцэнзіі
 
-v0.1 падтрымлівае толькі Apple Silicon macOS і чэшскі runtime. Распазнаванне і
+v0.1.1 падтрымлівае толькі Apple Silicon macOS і чэшскі runtime. Распазнаванне і
 адказы могуць памыляцца; істотныя дзеянні кантралюе чалавек. Код — MIT,
 атрыбуцыя ў [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Мадэлі,
 залежнасці і web-крыніцы маюць свае ліцэнзіі; binary і PyPI release няма.
+Стандартная мадэль OmniVoice мае CC-BY-NC і не дазваляе камерцыйнае выкарыстанне;
+забаронены несанкцыянаванае перайманне голасу і махлярства.

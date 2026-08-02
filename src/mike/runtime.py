@@ -1,4 +1,4 @@
-"""Jednoprocesový runtime: mikrofon, asistent, ``say``, dashboard a overlay."""
+"""Jednoprocesový runtime: mikrofon, asistent, OmniVoice, dashboard a overlay."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from .selfimprove import Judge, SafeTuner
 from .stt import load_backend, pcm_to_float32
 from .terminal import ReadOnlyTerminal
 from .text_filters import filter_segments
-from .tts import SayTTS
+from .tts import OmniVoiceTTS
 from .voiceprint import VoiceprintGate
 
 LOG = logging.getLogger(__name__)
@@ -43,10 +43,9 @@ class MikeRuntime:
         self.database = Database(config.paths.database)
         self.database.initialize()
         self.ollama = OllamaClient(config.assistant.ollama_url, config.assistant.model)
-        self.tts = SayTTS(
+        self.tts = OmniVoiceTTS(
+            config.tts.omnivoice_url,
             enabled=config.tts.enabled,
-            voice=config.tts.voice,
-            rate=config.tts.rate,
         )
         self.assistant = Assistant(
             config,

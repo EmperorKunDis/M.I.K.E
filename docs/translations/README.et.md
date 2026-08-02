@@ -2,7 +2,7 @@
 
 [Kanooniline tšehhikeelne README](../../README.md). M.I.K.E. on lokaalne avatud
 lähtekoodiga tšehhi häälassistent Apple Siliconiga Macile. Whisper transkribeerib,
-lokaalne Ollama vastab ja macOS `say` loeb vastuse ette. **Versioon 0.1 on alfa:
+lokaalne Ollama vastab ja lokaalne OmniVoice kõneleb. **Versioon 0.1.1 on alfa:
 rakendus, juhtpaneel ja häälkäsklused on tšehhi keeles. See fail on kogu juhendi,
 mitte kasutajaliidese tõlge.** Ärge kasutage seda hädaolukorra, meditsiini,
 õiguse ega muu kõrge riskiga otsuse jaoks.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorchi varuvariandiks kasutage `.[voice,torch,overlay]`.
 Whisperil, Ollamal ja igal mudelil on oma litsents ning tingimused.
+OmniVoice töötab eraldi `.venv-omnivoice` keskkonnas; kood on Apache-2.0, kuid
+vaikemudel on **CC-BY-NC ja pole ärikasutuseks**. Mudel laaditakse alla teenuse
+esmakäivitusel ning seda ei lisata repositooriumi.
 
 <!-- mike-doc:first-run -->
 ## Esmakäivitus
@@ -53,6 +62,10 @@ terminal ja voiceprint on väljas; telemeetriat pole ja toorheli ei salvestata.
 Põhiväljad: `assistant.model`, `stt.backend`, `stt.model`, `stt.device`,
 `server.port`, `[features]`. `MIKE_HOME` eraldab testi; avalikud muutujad on `MIKE_*`.
 
+OmniVoice kasutab `tts.omnivoice_url = "http://127.0.0.1:8130"`; väljad
+`tts.model`, `tts.instruct`, `tts.num_steps` ja `tts.speed` juhivad hääle
+kujundust. Avalik server ei võta vastu võrdlusheli ega klooni häält.
+
 Looge voiceprint lokaalselt käsuga
 `python -m mike.voiceprint /tee/oma-haalele.wav` ja määrake seejärel
 `features.voiceprint = true`. Kasutage ainult enda häält või kõneleja selget nõusolekut.
@@ -73,6 +86,8 @@ Telemeetriat pole. Dashboard, Ollama, andmebaas, transkriptsioon ja voiceprint
 on lokaalsed. Toorheli vaikimisi ei salvestata; privaatne SQLite säilitab teksti,
 vastused, selgesõnalise mälu ja hinded. Lubatud research saadab ainult selge
 päringu otsingule ning valitud avalikele HTTPS-saitidele. Vaadake [PRIVACY.md](../../PRIVACY.md).
+Ka OmniVoice on lokaalne: ajutine sünteetiline WAV on režiimis 600, kustutatakse
+pärast `afplay` käsku ning server ei võta vastu võrdlushäält.
 
 <!-- mike-doc:troubleshooting -->
 ## Tõrkeotsing
@@ -82,6 +97,8 @@ Alustage `mike doctor` käsust. Ollama puhul käivitage teenus, kontrollige
 Microphone õigust ja `stt.device`; tühi väärtus valib süsteemi sisendi. Kui 8140
 on hõivatud, muutke `server.port`. Vana Whisper Flow/MAJKA peatage selle enda
 tööriistaga. Logid on `~/Library/Application Support/MIKE/logs/`; eemaldage enne jagamist isikuandmed.
+Kui OmniVoice ei vasta, käivitage `./scripts/omnivoice_service.sh status`,
+kontrollige `omnivoice-error.log` ja `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## Eemaldamine
@@ -90,11 +107,15 @@ Käivitage `.venv/bin/mike stop` ja `.venv/bin/mike uninstall`. Eemaldatakse
 ainult LaunchAgent `io.github.emperorkundis.mike`; andmed jäävad taastamiseks.
 Täielikuks kustutamiseks teisaldage pärast varukoopia kontrolli
 `~/Library/Application Support/MIKE` prügikasti. Vanad paigaldused ei muutu.
+`./scripts/omnivoice_service.sh uninstall` eemaldab ainult eraldi LaunchAgendi
+`io.github.emperorkundis.mike.omnivoice`.
 
 <!-- mike-doc:warning -->
 ## Piirangud ja litsentsid
 
-v0.1 toetab ainult Apple Silicon macOS-i ja tšehhikeelset runtime’i. Tekst ning
+v0.1.1 toetab ainult Apple Silicon macOS-i ja tšehhikeelset runtime’i. Tekst ning
 vastus võivad eksida; olulist tegevust kontrollib inimene. Kood on MIT,
 atributsioonid on [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
 Mudelitel, sõltuvustel ja veebiallikatel on oma litsentsid; binaare ega PyPI-d pole.
+OmniVoice'i vaikemudel on CC-BY-NC ega ole ärikasutuseks; keelatud on loata
+isikuhääle jäljendamine ja pettus.

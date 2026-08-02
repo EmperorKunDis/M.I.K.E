@@ -13,6 +13,7 @@ from .config import Config
 from .launchd import legacy_processes, port_available
 from .ollama import OllamaClient, OllamaError
 from .security import is_private_path
+from .tts import OmniVoiceError, OmniVoiceTTS
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,6 @@ def run_checks(config: Config) -> list[Check]:
         Check("macOS", "OK" if platform.system() == "Darwin" else "FAIL", platform.platform()),
         Check("Apple Silicon", "OK" if platform.machine() == "arm64" else "FAIL", platform.machine()),
         Check("Python", "OK" if sys.version_info >= (3, 11) else "FAIL", platform.python_version()),
-        Check("say", "OK" if shutil.which("say") else "FAIL", shutil.which("say") or "nenalezen"),
         Check("launchctl", "OK" if shutil.which("launchctl") else "FAIL", shutil.which("launchctl") or "nenalezen"),
         Check(
             "config mode",
@@ -88,6 +88,14 @@ def run_checks(config: Config) -> list[Check]:
         )
     except OllamaError as exc:
         checks.append(Check("Ollama", "FAIL", str(exc)))
+    if config.tts.enabled:
+        try:
+            OmniVoiceTTS(config.tts.omnivoice_url, timeout=2).health()
+            checks.append(Check("OmniVoice", "OK", config.tts.omnivoice_url))
+        except OmniVoiceError as exc:
+            checks.append(Check("OmniVoice", "FAIL", str(exc)))
+    else:
+        checks.append(Check("OmniVoice", "OK", "TTS je výslovně vypnuté"))
     checks.append(
         Check(
             "port",

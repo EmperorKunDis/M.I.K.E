@@ -23,6 +23,7 @@ def test_health_is_local_and_private(config, app_paths, fake_tts):
     payload = client.get("/api/health").json()
     assert payload["ok"]
     assert payload["host"] == "127.0.0.1"
+    assert payload["tts"] == {"provider": "omnivoice", "enabled": True}
     assert payload["privacy"]["telemetry"] is False
 
 

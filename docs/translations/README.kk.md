@@ -2,7 +2,7 @@
 
 [Чех тіліндегі негізгі README](../../README.md). M.I.K.E. — Apple Silicon Mac
 үшін жергілікті, ашық кодты чех дауыстық көмекшісі. Whisper сөйлеуді мәтінге
-айналдырады, жергілікті Ollama жауап береді, macOS `say` оны оқиды. **0.1 — alpha:
+айналдырады, жергілікті Ollama жауап береді, жергілікті OmniVoice оны дыбыстайды. **0.1.1 — alpha:
 қолданба, панель және дауыстық командалар чех тілінде. Бұл интерфейстің емес,
 толық нұсқаулықтың аудармасы.** Төтенше, медициналық, заңдық немесе жоғары
 тәуекелді шешімдер үшін қолданбаңыз.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorch fallback үшін `.[voice,torch,overlay]` пайдаланыңыз.
 Whisper, Ollama және әр модельдің жеке лицензиясы мен шарттары бар.
+OmniVoice бөлек `.venv-omnivoice` ортасында жұмыс істейді; код Apache-2.0, ал
+әдепкі модель **CC-BY-NC және коммерциялық қолдануға арналмаған**. Ол қызмет
+алғаш іске қосылғанда жүктеледі және репозиторийге кірмейді.
 
 <!-- mike-doc:first-run -->
 ## Алғашқы іске қосу
@@ -51,6 +60,10 @@ voiceprint өшірулі; телеметрия жоқ, raw audio сақталм
 `assistant.model`, `stt.backend`, `stt.model`, `stt.device`, `server.port`,
 `[features]`. `MIKE_HOME` тестті оқшаулайды; орта айнымалылары `MIKE_*`.
 
+OmniVoice `tts.omnivoice_url = "http://127.0.0.1:8130"` қолданады;
+`tts.model`, `tts.instruct`, `tts.num_steps` және `tts.speed` дауыс дизайнын
+басқарады. Ашық сервер анықтамалық аудионы қабылдамайды және дауысты клондамайды.
+
 Voiceprint-ті жергілікті жасаңыз:
 `python -m mike.voiceprint /оз-дауысыныз/жолы.wav`, кейін
 `features.voiceprint = true` қойыңыз. Тек өз дауысыңызды не айқын келісімді қолданыңыз.
@@ -71,6 +84,8 @@ spusť …» керек; shell, pipe, redirect және жазу жоқ.
 Raw audio әдепкіде сақталмайды; жеке SQLite мәтін, жауап, айқын жад және бағаларды
 сақтайды. Қосылған research тек айқын сұрауды іздеу қызметіне және таңдалған
 ашық HTTPS сайттарына жібереді. [PRIVACY.md](../../PRIVACY.md) қараңыз.
+OmniVoice те жергілікті: уақытша синтетикалық WAV 600 режимінде жасалып,
+`afplay`-ден кейін өшіріледі; сервер анықтамалық дауысты қабылдамайды.
 
 <!-- mike-doc:troubleshooting -->
 ## Ақауларды шешу
@@ -80,6 +95,8 @@ Raw audio әдепкіде сақталмайды; жеке SQLite мәтін, �
 тексеріңіз; бос мән жүйелік кіріс. 8140 бос болмаса, `server.port` ауыстырыңыз.
 Ескі Whisper Flow/MAJKA-ны өз құралымен тоқтатыңыз. Логтар
 `~/Library/Application Support/MIKE/logs/` ішінде; бөлісерде жеке деректі өшіріңіз.
+OmniVoice жауап бермесе, `./scripts/omnivoice_service.sh status` орындап,
+`omnivoice-error.log` және `tts.omnivoice_url` тексеріңіз.
 
 <!-- mike-doc:uninstall -->
 ## Жою
@@ -88,11 +105,15 @@ Raw audio әдепкіде сақталмайды; жеке SQLite мәтін, �
 `io.github.emperorkundis.mike` жойылады; дерек қалпына келтіруге қалады. Толық
 жою үшін backup тексеріп, `~/Library/Application Support/MIKE` қалтасын Trash-қа
 жылжытыңыз. Ескі орнатулар өзгермейді.
+`./scripts/omnivoice_service.sh uninstall` тек бөлек
+`io.github.emperorkundis.mike.omnivoice` LaunchAgent-ін жояды.
 
 <!-- mike-doc:warning -->
 ## Шектеулер мен лицензиялар
 
-v0.1 тек Apple Silicon macOS және чех runtime қолдайды. Мәтін мен жауап қате
+v0.1.1 тек Apple Silicon macOS және чех runtime қолдайды. Мәтін мен жауап қате
 болуы мүмкін; маңызды әрекетті адам бақылайды. Код MIT, атрибуция
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) ішінде. Модельдер,
 тәуелділіктер және web көздерінің өз лицензиясы бар; binary мен PyPI жоқ.
+Әдепкі OmniVoice моделі CC-BY-NC және коммерцияға арналмаған; рұқсатсыз дауысқа
+еліктеу мен алаяқтыққа тыйым салынады.

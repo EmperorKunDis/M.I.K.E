@@ -2,8 +2,8 @@
 
 [README-и асосӣ ба забони чехӣ](../../README.md). M.I.K.E. ёвари овозии
 маҳаллӣ ва кушодаасоси чехӣ барои Mac-и Apple Silicon аст. Whisper нутқро ба
-матн мегузаронад, Ollama-и маҳаллӣ ҷавоб медиҳад ва macOS `say` онро мехонад.
-**Версияи 0.1 alpha аст: барнома, панел ва фармонҳои овозӣ чехӣ мебошанд. Ин
+матн мегузаронад, Ollama-и маҳаллӣ ҷавоб медиҳад ва OmniVoice-и маҳаллӣ онро мехонад.
+**Версияи 0.1.1 alpha аст: барнома, панел ва фармонҳои овозӣ чехӣ мебошанд. Ин
 тарҷумаи пурраи дастур аст, на интерфейс.** Барои ҳолатҳои фаврӣ, тиббӣ, ҳуқуқӣ
 ё қарорҳои хавфи баланд истифода набаред.
 
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 Барои OpenAI Whisper/PyTorch fallback аз `.[voice,torch,overlay]` истифода
 баред. Whisper, Ollama ва ҳар модел иҷозатнома ва шартҳои худро доранд.
+OmniVoice дар `.venv-omnivoice`-и ҷудо кор мекунад; код Apache-2.0 аст, вале
+модели пешфарз **CC-BY-NC буда, барои истифодаи тиҷоратӣ нест**. Он ҳангоми
+оғози аввали хидмат бор мешавад ва ба репозиторий дохил намешавад.
 
 <!-- mike-doc:first-run -->
 ## Оғози аввал
@@ -52,6 +61,10 @@ terminal ва voiceprint хомӯшанд; telemetry нест ва raw audio н�
 намешавад. Майдонҳо: `assistant.model`, `stt.backend`, `stt.model`, `stt.device`,
 `server.port`, `[features]`. `MIKE_HOME` санҷишро ҷудо мекунад; тағйирёбандаҳо `MIKE_*`.
 
+OmniVoice аз `tts.omnivoice_url = "http://127.0.0.1:8130"` истифода мебарад;
+`tts.model`, `tts.instruct`, `tts.num_steps` ва `tts.speed` тарҳи овозро идора
+мекунанд. Сервери умумӣ аудиои намунавӣ намегирад ва овозро клон намекунад.
+
 Voiceprint-ро маҳаллӣ созед:
 `python -m mike.voiceprint /рох/ба/овози-худ.wav`, баъд
 `features.voiceprint = true`. Танҳо овози худ ё ризоияти равшанро истифода баред.
@@ -72,6 +85,8 @@ Telemetry нест. Dashboard, Ollama, база, транскрипсия ва v
 мебошанд. Raw audio пешфарз нигоҳ дошта намешавад; SQLite-и хусусӣ матн, ҷавоб,
 хотираи равшан ва баҳоро нигоҳ медорад. Research-и фаъол танҳо дархости равшанро
 ба ҷустуҷӯ ва сайтҳои интихобшудаи HTTPS мефиристад. [PRIVACY.md](../../PRIVACY.md).
+OmniVoice низ маҳаллӣ аст: WAV-и муваққатии синтетикӣ режими 600 дорад, пас аз
+`afplay` пок мешавад ва сервер овози намунавӣ намегирад.
 
 <!-- mike-doc:troubleshooting -->
 ## Ҳалли мушкилот
@@ -81,6 +96,8 @@ Telemetry нест. Dashboard, Ollama, база, транскрипсия ва v
 санҷед; қимати холӣ вуруди система аст. Агар 8140 банд бошад, `server.port`-ро
 иваз кунед. Whisper Flow/MAJKA-и кӯҳнаро бо асбоби худаш боздоред. Логҳо дар
 `~/Library/Application Support/MIKE/logs/`; пеш аз мубодила маълумоти шахсиро гиред.
+Агар OmniVoice ҷавоб надиҳад, `./scripts/omnivoice_service.sh status` иҷро карда,
+`omnivoice-error.log` ва `tts.omnivoice_url`-ро санҷед.
 
 <!-- mike-doc:uninstall -->
 ## Поккунӣ
@@ -89,11 +106,15 @@ Telemetry нест. Dashboard, Ollama, база, транскрипсия ва v
 `io.github.emperorkundis.mike` пок мешавад; маълумот барои барқарорӣ мемонад.
 Барои поккунии пурра backup-ро санҷида `~/Library/Application Support/MIKE`-ро
 ба Trash гузаронед. Насбҳои кӯҳна тағйир намеёбанд.
+`./scripts/omnivoice_service.sh uninstall` танҳо LaunchAgent-и ҷудои
+`io.github.emperorkundis.mike.omnivoice`-ро пок мекунад.
 
 <!-- mike-doc:warning -->
 ## Маҳдудият ва иҷозатнома
 
-v0.1 танҳо Apple Silicon macOS ва runtime-и чехиро дастгирӣ мекунад. Матн ва
+v0.1.1 танҳо Apple Silicon macOS ва runtime-и чехиро дастгирӣ мекунад. Матн ва
 ҷавоб метавонад хато шавад; амали муҳимро инсон назорат мекунад. Код MIT аст,
 атрибутсия дар [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Моделҳо,
-вобастагиҳо ва web-манбаъҳо иҷозатномаи худ доранд; binary ва PyPI нест.
+вобастагиҳо ва web-манбаъҳо иҷозатномаи худ доранд; binary ва PyPI нест. Модели
+пешфарзи OmniVoice CC-BY-NC буда, барои тиҷорат нест; тақлиди беиҷозати овоз ва
+қаллобӣ манъ аст.

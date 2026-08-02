@@ -11,6 +11,8 @@
 
 - architektura: [architecture.md](architecture.md) a [adr/](adr/);
 - soukromí/síť: [PRIVACY.md](../PRIVACY.md), [SECURITY.md](../SECURITY.md) a ADR 0001;
+- TTS a modelová licence: [ADR 0002](adr/0002-omnivoice-tts.md) a
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md);
 - instalace/launchd: [runbooks/local-runtime.md](runbooks/local-runtime.md);
 - veřejná změna: [CONTRIBUTING.md](../CONTRIBUTING.md) a aktivní [specs/](specs/),
   [plans/](plans/);

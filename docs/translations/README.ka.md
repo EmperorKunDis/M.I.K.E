@@ -2,8 +2,8 @@
 
 [კანონიკური ჩეხური README](../../README.md). M.I.K.E. არის ლოკალური, ღია კოდის
 ჩეხური ხმოვანი ასისტენტი Apple Silicon Mac-ისთვის. Whisper მეტყველებას ტექსტად
-აქცევს, ლოკალური Ollama პასუხობს, ხოლო macOS `say` პასუხს კითხულობს. **ვერსია
-0.1 ალფაა: პროგრამა, პანელი და ხმოვანი ბრძანებები ჩეხურ ენაზეა. ეს არის სრული
+აქცევს, ლოკალური Ollama პასუხობს, ხოლო ლოკალური OmniVoice პასუხს ახმოვანებს. **ვერსია
+0.1.1 ალფაა: პროგრამა, პანელი და ხმოვანი ბრძანებები ჩეხურ ენაზეა. ეს არის სრული
 სახელმძღვანელოს და არა ინტერფეისის თარგმანი.** არ გამოიყენოთ საგანგებო,
 სამედიცინო, იურიდიული ან სხვა მაღალი რისკის გადაწყვეტილებებისთვის.
 
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorch fallback-ისთვის გამოიყენეთ `.[voice,torch,overlay]`.
 Whisper-ს, Ollama-სა და თითოეულ მოდელს საკუთარი ლიცენზია და პირობები აქვს.
+OmniVoice ცალკე `.venv-omnivoice` გარემოში მუშაობს; კოდი Apache-2.0-ია, მაგრამ
+ნაგულისხმევი მოდელი **CC-BY-NC-ია და კომერციული გამოყენებისთვის არაა**. ის
+სერვისის პირველი გაშვებისას იტვირთება და რეპოზიტორიაში არ შედის.
 
 <!-- mike-doc:first-run -->
 ## პირველი გაშვება
@@ -52,6 +61,10 @@ Research, terminal და voiceprint გამორთულია; ტელ�
 ინახება. ძირითადი ველები: `assistant.model`, `stt.backend`, `stt.model`,
 `stt.device`, `server.port`, `[features]`. `MIKE_HOME` ტესტს იზოლირებს; ცვლადებია `MIKE_*`.
 
+OmniVoice იყენებს `tts.omnivoice_url = "http://127.0.0.1:8130"`; ველები
+`tts.model`, `tts.instruct`, `tts.num_steps` და `tts.speed` ხმის დიზაინს მართავს.
+საჯარო სერვერი საცნობარო აუდიოს არ იღებს და ხმას არ კლონავს.
+
 Voiceprint ლოკალურად შექმენით:
 `python -m mike.voiceprint /გზა/თქვენს-ხმამდე.wav`, შემდეგ ჩართეთ
 `features.voiceprint = true`. გამოიყენეთ მხოლოდ საკუთარი ხმა ან აშკარა თანხმობა.
@@ -72,6 +85,8 @@ spusť …“; shell, pipe, redirect და ჩაწერა დაუშვ�
 ლოკალურია. ნედლი აუდიო ნაგულისხმევად არ ინახება; პირადი SQLite ინახავს ტექსტს,
 პასუხებს, აშკარა მეხსიერებას და შეფასებებს. ჩართული research მხოლოდ აშკარა
 მოთხოვნას უგზავნის საძიებელს და შერჩეულ საჯარო HTTPS საიტებს. იხ. [PRIVACY.md](../../PRIVACY.md).
+OmniVoice-იც ლოკალურია: დროებითი სინთეზური WAV 600 რეჟიმით იქმნება, `afplay`-ის
+შემდეგ იშლება და სერვერი საცნობარო ხმას არ იღებს.
 
 <!-- mike-doc:troubleshooting -->
 ## პრობლემების მოგვარება
@@ -81,6 +96,8 @@ spusť …“; shell, pipe, redirect და ჩაწერა დაუშვ�
 მნიშვნელობა სისტემურ შესავალს ირჩევს. დაკავებული 8140-ისას შეცვალეთ
 `server.port`. ძველი Whisper Flow/MAJKA საკუთარი ხელსაწყოთი გააჩერეთ. ლოგებია
 `~/Library/Application Support/MIKE/logs/`; გაზიარებამდე პირადი მონაცემები წაშალეთ.
+თუ OmniVoice არ პასუხობს, გაუშვით `./scripts/omnivoice_service.sh status`,
+შეამოწმეთ `omnivoice-error.log` და `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## დეინსტალაცია
@@ -89,11 +106,15 @@ spusť …“; shell, pipe, redirect და ჩაწერა დაუშვ�
 LaunchAgent `io.github.emperorkundis.mike`; მონაცემები აღდგენისთვის რჩება.
 სრული წაშლისთვის backup-ის შემოწმების შემდეგ
 `~/Library/Application Support/MIKE` Trash-ში გადაიტანეთ. ძველი ინსტალაცია უცვლელია.
+`./scripts/omnivoice_service.sh uninstall` მხოლოდ ცალკე LaunchAgent-ს
+`io.github.emperorkundis.mike.omnivoice` შლის.
 
 <!-- mike-doc:warning -->
 ## შეზღუდვები და ლიცენზიები
 
-v0.1 მხოლოდ Apple Silicon macOS-სა და ჩეხურ runtime-ს უჭერს მხარს. ტექსტი და
+v0.1.1 მხოლოდ Apple Silicon macOS-სა და ჩეხურ runtime-ს უჭერს მხარს. ტექსტი და
 პასუხი შეიძლება მცდარი იყოს; მნიშვნელოვან ქმედებას ადამიანი აკონტროლებს. კოდი
 MIT-ია, ატრიბუცია — [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
 მოდელებს, დამოკიდებულებებსა და web წყაროებს საკუთარი ლიცენზიები აქვთ; binary და PyPI არაა.
+ნაგულისხმევი OmniVoice მოდელი CC-BY-NC-ია და კომერციული გამოყენებისთვის არაა;
+აკრძალულია უნებართვო ხმის მიბაძვა და თაღლითობა.

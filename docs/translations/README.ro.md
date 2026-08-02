@@ -2,7 +2,7 @@
 
 [README canonic în cehă](../../README.md). M.I.K.E. este un asistent vocal ceh,
 local și open-source, pentru Mac cu Apple Silicon. Whisper transcrie, modelul
-local Ollama răspunde, iar macOS `say` citește răspunsul. **Versiunea 0.1 este
+local Ollama răspunde, iar OmniVoice local redă vocea. **Versiunea 0.1.1 este
 alpha: aplicația, panoul și comenzile vocale sunt în cehă. Acesta este ghidul
 complet tradus, nu interfața tradusă.** Nu folosiți aplicația pentru urgențe,
 medicină, drept sau alte decizii cu risc ridicat.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 Pentru fallback OpenAI Whisper/PyTorch instalați `.[voice,torch,overlay]`.
 Whisper, Ollama și fiecare model au licențe și condiții proprii.
+OmniVoice rulează în `.venv-omnivoice` separat; codul este Apache-2.0, însă
+modelul implicit este **CC-BY-NC și nu poate fi folosit comercial**. Modelul se
+descarcă la prima pornire a serviciului și nu este inclus în depozit.
 
 <!-- mike-doc:first-run -->
 ## Prima pornire
@@ -53,6 +62,10 @@ brut nu se salvează. Câmpuri principale: `assistant.model`, `stt.backend`,
 `stt.model`, `stt.device`, `server.port`, `[features]`. `MIKE_HOME` izolează un
 test; variabilele publice folosesc prefixul `MIKE_*`.
 
+OmniVoice folosește `tts.omnivoice_url = "http://127.0.0.1:8130"`; câmpurile
+`tts.model`, `tts.instruct`, `tts.num_steps` și `tts.speed` controlează designul
+vocii. Serverul public nu acceptă audio de referință și nu clonează voci.
+
 Creați voiceprint local cu
 `python -m mike.voiceprint /cale/catre/vocea-proprie.wav`, apoi setați
 `features.voiceprint = true`. Folosiți numai vocea proprie sau acordul explicit.
@@ -74,6 +87,8 @@ locale. Audio brut nu este stocat implicit; SQLite privată păstrează texte,
 răspunsuri, memoria explicită și evaluări. Research activ trimite doar cererea
 explicită unui motor de căutare și site-urilor HTTPS publice selectate. Vedeți
 [PRIVACY.md](../../PRIVACY.md).
+OmniVoice este local; WAV-ul sintetic temporar are modul 600 și este șters după
+`afplay`, iar serverul nu acceptă o voce de referință.
 
 <!-- mike-doc:troubleshooting -->
 ## Depanare
@@ -84,6 +99,8 @@ explicită unui motor de căutare și site-urilor HTTPS publice selectate. Vede�
 8140 este ocupat. Opriți vechiul Whisper Flow/MAJKA cu instrumentul propriu.
 Logurile sunt în `~/Library/Application Support/MIKE/logs/`; eliminați datele
 personale înainte de partajare.
+Dacă OmniVoice nu răspunde, rulați `./scripts/omnivoice_service.sh status`,
+verificați `omnivoice-error.log` și `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## Dezinstalare
@@ -92,11 +109,15 @@ Rulați `.venv/bin/mike stop` și `.venv/bin/mike uninstall`. Se elimină numai
 LaunchAgent `io.github.emperorkundis.mike`; datele rămân pentru recuperare.
 După verificarea copiei de siguranță, mutați
 `~/Library/Application Support/MIKE` în Trash pentru ștergere totală. Instalările vechi rămân intacte.
+`./scripts/omnivoice_service.sh uninstall` elimină doar LaunchAgent-ul separat
+`io.github.emperorkundis.mike.omnivoice`.
 
 <!-- mike-doc:warning -->
 ## Limitări și licențe
 
-v0.1 suportă numai macOS Apple Silicon și runtime ceh. Transcrierile și
+v0.1.1 suportă numai macOS Apple Silicon și runtime ceh. Transcrierile și
 răspunsurile pot fi greșite; omul supraveghează orice acțiune importantă. Codul
 este MIT, cu atribuiri în [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
 Modelele, dependențele și sursele web au licențe proprii; nu există binare sau PyPI.
+Modelul OmniVoice implicit este CC-BY-NC și nu permite utilizare comercială;
+nu îl folosiți pentru imitare neautorizată sau fraudă.

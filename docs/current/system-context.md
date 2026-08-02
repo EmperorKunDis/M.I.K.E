@@ -10,12 +10,14 @@ related_plan: "docs/plans/public-v0.1.md"
 
 # System context
 
-M.I.K.E. v0.1 je per-user macOS aplikace pro Apple Silicon. Python 3.11+ běží
+M.I.K.E. v0.1.1 je per-user macOS aplikace pro Apple Silicon. Python 3.11+ běží
 jako LaunchAgent `io.github.emperorkundis.mike`, zachytává mikrofon, lokálně
-přepisuje češtinu a volá Ollamu na loopbacku. Odpověď vysloví `/usr/bin/say` a
-zobrazí v lokálním dashboardu/volitelném AppKit overlayi.
+přepisuje češtinu a volá Ollamu na loopbacku. Odpověď odešle lokálnímu
+OmniVoice serveru v odděleném Python prostředí; ten používá voice design,
+dočasný privátní WAV a `afplay`. Text se současně zobrazí v lokálním
+dashboardu/volitelném AppKit overlayi.
 
-Jediné externí runtime spojení je explicitně zapnutý research. Terminál je
+Jediné externí runtime spojení po stažení modelů je explicitně zapnutý research. Terminál je
 read-only a bez shellu. SQLite, config, logy a voiceprint jsou privátní per-user
 data. Automatické nasazení, PyPI, cloud, telemetrie a binární distribuce nejsou
-součástí v0.1.
+součástí v0.1.1. Výchozí OmniVoice model se stahuje samostatně a je CC-BY-NC.

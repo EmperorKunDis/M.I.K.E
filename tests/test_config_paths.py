@@ -80,6 +80,8 @@ def test_load_defaults(config):
     assert config.server.host == "127.0.0.1"
     assert config.server.port == 8140
     assert config.stt.language == "cs"
+    assert config.tts.omnivoice_url == "http://127.0.0.1:8130"
+    assert config.tts.model == "k2-fsa/OmniVoice"
     assert not config.features.research
     assert not config.privacy.save_raw_audio
 
@@ -107,6 +109,25 @@ def test_ollama_must_be_local_and_credential_free(app_paths, url):
         load_config(app_paths)
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://127.0.0.1:8130",
+        "http://localhost:8130",
+        "http://192.168.1.2:8130",
+        "http://127.0.0.1",
+        "http://127.0.0.1:notaport",
+        "http://user:pass@127.0.0.1:8130",
+        "http://127.0.0.1:8130/speak",
+        "http://127.0.0.1:8130?token=x",
+    ],
+)
+def test_omnivoice_must_be_literal_loopback_and_credential_free(app_paths, url):
+    replace_config(app_paths, "http://127.0.0.1:8130", url)
+    with pytest.raises(ConfigError, match="tts.omnivoice_url"):
+        load_config(app_paths)
+
+
 @pytest.mark.parametrize("backend", ["cuda", "remote", "", "mlx-whisper"])
 def test_unknown_stt_backend_is_rejected(app_paths, backend):
     replace_config(app_paths, 'backend = "mlx"', f'backend = "{backend}"')
@@ -114,11 +135,22 @@ def test_unknown_stt_backend_is_rejected(app_paths, backend):
         load_config(app_paths)
 
 
+@pytest.mark.parametrize(("old", "new", "message"), [
+    ('model = "k2-fsa/OmniVoice"', 'model = ""', "tts.model"),
+    ('instruct = "male, middle-aged, low pitch"', 'instruct = ""', "tts.instruct"),
+])
+def test_omnivoice_text_settings_cannot_be_empty(app_paths, old, new, message):
+    replace_config(app_paths, old, new)
+    with pytest.raises(ConfigError, match=message):
+        load_config(app_paths)
+
+
 @pytest.mark.parametrize(
     ("old", "new", "message"),
     [
         ("port = 8140", "port = 80", "server.port"),
-        ("rate = 190", "rate = 20", "tts.rate"),
+        ("num_steps = 32", "num_steps = 2", "tts.num_steps"),
+        ("speed = 1.0", "speed = 4.0", "tts.speed"),
         ("context_turns = 8", "context_turns = 0", "assistant.context_turns"),
         ("silence_ms = 650", "silence_ms = 10", "stt.silence_ms"),
         ("max_utterance_ms = 30000", "max_utterance_ms = 500", "stt.max_utterance_ms"),
@@ -145,11 +177,13 @@ def test_mike_environment_overrides(app_paths):
             "MIKE_PORT": "9123",
             "MIKE_HOST": "::1",
             "MIKE_OLLAMA_URL": "http://localhost:11434",
+            "MIKE_OMNIVOICE_URL": "http://127.0.0.1:9130",
         },
     )
     assert config.assistant.model == "local:test"
     assert config.server.port == 9123
     assert config.server.host == "::1"
+    assert config.tts.omnivoice_url == "http://127.0.0.1:9130"
 
 
 def test_no_legacy_environment_prefix_in_default_config():

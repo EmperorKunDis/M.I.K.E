@@ -13,7 +13,7 @@ related_plan: "docs/plans/public-v0.1.md"
 1. Čisté venv, `./scripts/verify.sh`, lokální Gitleaks nad soubory i historií.
 2. Ověřit jediný očekávaný commit, veřejný remote a vzdálený SHA.
 3. Vyžadovat zelené `test` a `gitleaks`, secret scanning a ochranu `main`.
-4. Tag `v0.1.0` a GitHub Release pouze z automatického source archivu.
+4. Tag odpovídající verzi v `pyproject.toml` a GitHub Release pouze z automatického source archivu.
 5. Nepřikládat binárky, modely, média a nic nepublikovat na PyPI.
 
 Publikace, změna ochrany větve a release jsou externí akce vyžadující explicitní

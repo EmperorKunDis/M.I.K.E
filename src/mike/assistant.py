@@ -14,7 +14,7 @@ from .ollama import OllamaClient, OllamaError
 from .research import ResearchClient, extract_query
 from .selfimprove import Judge
 from .terminal import ReadOnlyTerminal, extract_voice_command
-from .tts import SayTTS
+from .tts import OmniVoiceTTS
 
 SYSTEM_PROMPT = (
     "Jsi M.I.K.E., lokální český hlasový asistent. Oslovuj člověka neutrálně jako "
@@ -58,7 +58,7 @@ class Assistant:
         config: Config,
         database: Database,
         ollama: OllamaClient,
-        tts: SayTTS,
+        tts: OmniVoiceTTS,
         *,
         research: ResearchClient | None = None,
         terminal: ReadOnlyTerminal | None = None,
