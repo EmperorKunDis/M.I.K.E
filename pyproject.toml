@@ -34,7 +34,7 @@ voice = [
 ]
 mlx = ["mlx-whisper>=0.4.2,<1"]
 torch = ["openai-whisper>=20250625"]
-overlay = ["pyobjc-framework-Cocoa>=10,<12"]
+overlay = ["pyobjc-framework-Cocoa>=10,<13"]
 dev = [
   "httpx>=0.27,<1",
   "pip-audit>=2.7,<3",
