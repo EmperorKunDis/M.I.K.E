@@ -1,0 +1,23 @@
+name: Návrh funkce
+description: Bezpečný a obecný návrh
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problém uživatele
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Návrh
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Dopad na soukromí a bezpečnost
+    validations:
+      required: true

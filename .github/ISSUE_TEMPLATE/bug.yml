@@ -1,0 +1,30 @@
+name: Chyba
+description: Reprodukovatelný problém bez citlivých dat
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Nevkládejte přepisy, klíče, hlasové otisky ani jiné osobní údaje. Zranitelnosti hlaste soukromě."
+  - type: input
+    id: version
+    attributes:
+      label: Verze
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Kroky reprodukce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Očekávané a skutečné chování
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Sanitizovaný výstup mike doctor
