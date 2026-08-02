@@ -17,10 +17,12 @@ Toto je jediná autorita pro coding agenty v repozitáři M.I.K.E.
 - veřejné proměnné pouze `MIKE_*`; data pouze v privátním MIKE home;
 - dashboard a Ollama pouze loopback; telemetrie a raw audio default off;
 - research, terminál a voiceprint pouze opt-in; žádný zápisový terminál;
-- TTS pouze systémové `say`; žádné klonování nebo napodobování hlasu;
+- TTS pouze přes lokální OmniVoice voice-design službu; žádné referenční audio,
+  klonování nebo napodobování konkrétního hlasu;
 - žádné modely, média, certifikáty, secrets, přepisy nebo osobní údaje v gitu;
-- instalace/stop/uninstall spravují pouze `io.github.emperorkundis.mike` a nikdy
-  neukončují ani nemažou cizí/starší instalaci.
+- lifecycle aplikace spravuje jen `io.github.emperorkundis.mike`; OmniVoice
+  helper jen `io.github.emperorkundis.mike.omnivoice`. Nikdy neukončují ani
+  nemažou cizí/starší instalaci.
 
 ## Workflow
 

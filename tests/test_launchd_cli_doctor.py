@@ -14,6 +14,15 @@ from mike.doctor import Check, as_json
 from mike.errors import CollisionError
 from mike.ollama import OllamaError
 from mike.paths import permission_bits
+from mike.tts import OmniVoiceError
+
+
+class HealthyOmniVoice:
+    def __init__(self, *_args, **_kwargs):
+        pass
+
+    def health(self):
+        return {"ok": True, "provider": "omnivoice"}
 
 
 def test_label_is_stable():
@@ -167,9 +176,10 @@ def test_doctor_full_happy_path(config, monkeypatch):
             return {"model_installed": True}
 
     monkeypatch.setattr(doctor, "OllamaClient", HealthyOllama)
+    monkeypatch.setattr(doctor, "OmniVoiceTTS", HealthyOmniVoice)
     checks = doctor.run_checks(config)
     assert not any(check.status == "FAIL" for check in checks)
-    assert {check.name for check in checks} >= {"macOS", "Apple Silicon", "Ollama model", "port"}
+    assert {check.name for check in checks} >= {"macOS", "Apple Silicon", "Ollama model", "OmniVoice", "port"}
 
 
 def test_doctor_reports_ollama_failure(config, monkeypatch):
@@ -186,8 +196,18 @@ def test_doctor_reports_ollama_failure(config, monkeypatch):
             raise OllamaError("offline")
 
     monkeypatch.setattr(doctor, "OllamaClient", BrokenOllama)
+
+    class BrokenOmniVoice:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def health(self):
+            raise OmniVoiceError("offline")
+
+    monkeypatch.setattr(doctor, "OmniVoiceTTS", BrokenOmniVoice)
     checks = doctor.run_checks(config)
     assert any(check.name == "Ollama" and check.status == "FAIL" for check in checks)
+    assert any(check.name == "OmniVoice" and check.status == "FAIL" for check in checks)
     assert any(check.name == "stará instalace" and check.status == "WARN" for check in checks)
 
 
@@ -206,6 +226,27 @@ def test_doctor_accepts_explicitly_disabled_stt(config, monkeypatch):
             return {"model_installed": True}
 
     monkeypatch.setattr(doctor, "OllamaClient", HealthyOllama)
+    monkeypatch.setattr(doctor, "OmniVoiceTTS", HealthyOmniVoice)
     checks = doctor.run_checks(config)
     assert any(check.name == "STT" and check.status == "OK" for check in checks)
     assert not any(check.name.startswith("STT ") and check.status == "FAIL" for check in checks)
+
+
+def test_doctor_does_not_contact_omnivoice_when_tts_is_disabled(config, monkeypatch):
+    config = replace(config, tts=replace(config.tts, enabled=False))
+    monkeypatch.setattr(doctor, "microphone_permission", lambda: ("WARN", "neznámé"))
+    monkeypatch.setattr(doctor.importlib.util, "find_spec", lambda _name: object())
+    monkeypatch.setattr(doctor, "port_available", lambda *_args: True)
+    monkeypatch.setattr(doctor, "legacy_processes", lambda: [])
+    monkeypatch.setattr(doctor, "OmniVoiceTTS", lambda *_args, **_kwargs: pytest.fail("nemá se volat"))
+
+    class HealthyOllama:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def health(self):
+            return {"model_installed": True}
+
+    monkeypatch.setattr(doctor, "OllamaClient", HealthyOllama)
+    checks = doctor.run_checks(config)
+    assert any(check.name == "OmniVoice" and check.detail == "TTS je výslovně vypnuté" for check in checks)

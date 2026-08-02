@@ -1,81 +1,116 @@
-"""Systémové macOS TTS přes ``say``; žádné klonování hlasu."""
+"""Lokální klient OmniVoice TTS; žádný systémový ani cloudový fallback."""
 
 from __future__ import annotations
 
-import shutil
-import subprocess
+import json
+import logging
 import threading
+import time
+import urllib.error
+import urllib.request
 from collections.abc import Callable
 from typing import Any
 
+from .errors import MikeError
 
-class SayTTS:
+LOG = logging.getLogger(__name__)
+
+
+class OmniVoiceError(MikeError):
+    """Lokální OmniVoice služba neodpověděla platně."""
+
+
+class OmniVoiceTTS:
+    """Fronta a barge-in nad loopback API ``/speak``, ``/stop`` a ``/health``."""
+
     def __init__(
         self,
+        base_url: str,
         *,
         enabled: bool = True,
-        voice: str = "",
-        rate: int = 190,
-        say_path: str | None = None,
-        popen: Callable[..., Any] | None = None,
+        timeout: float = 5.0,
+        opener: Callable[..., Any] | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
+        self.base_url = base_url.rstrip("/")
         self.enabled = enabled
-        self.voice = voice.strip()
-        self.rate = max(80, min(rate, 500))
-        self.say_path = say_path or shutil.which("say") or "/usr/bin/say"
-        self._popen = popen or subprocess.Popen
-        self._process: Any | None = None
+        self.timeout = timeout
+        self._open = opener or urllib.request.urlopen
+        self._clock = clock or time.monotonic
         self._lock = threading.Lock()
+        self._speaking = False
+        self._health_at = 0.0
+
+    def _request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        request = urllib.request.Request(  # noqa: S310 - URL is validated as literal loopback
+            f"{self.base_url}{path}",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="GET" if payload is None else "POST",
+        )
+        try:
+            with self._open(request, timeout=self.timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            raise OmniVoiceError(f"Lokální OmniVoice neodpovídá: {exc}") from exc
+        if not isinstance(body, dict):
+            raise OmniVoiceError("OmniVoice vrátil neplatnou JSON odpověď.")
+        return body
+
+    def health(self) -> dict[str, Any]:
+        """Ověří připravenost modelu a obnoví krátkou speaking cache."""
+        payload = self._request("/health")
+        if payload.get("ok") is not True:
+            raise OmniVoiceError("OmniVoice model není připravený.")
+        with self._lock:
+            self._speaking = bool(payload.get("speaking") or payload.get("pending"))
+            self._health_at = self._clock()
+        return payload
 
     @property
     def is_speaking(self) -> bool:
+        """Vrátí stav bez zahlcení služby dotazem pro každý audio chunk."""
+        now = self._clock()
         with self._lock:
-            return self._process is not None and self._process.poll() is None
-
-    def command(self, text: str) -> list[str]:
-        args = [self.say_path, "-r", str(self.rate)]
-        if self.voice:
-            args.extend(["-v", self.voice])
-        args.append(text.strip()[:4000])
-        return args
+            cached = self._speaking
+            fresh = now - self._health_at < 0.25
+        if fresh or not self.enabled:
+            return cached
+        try:
+            self.health()
+        except OmniVoiceError:
+            return False
+        with self._lock:
+            return self._speaking
 
     def speak(self, text: str, *, wait: bool = False) -> bool:
-        if not self.enabled or not text.strip():
+        """Zařadí text do OmniVoice; ``wait`` zůstává kompatibilní a je asynchronní."""
+        del wait
+        text = text.strip()[:4000]
+        if not self.enabled or not text:
             return False
-        self.stop()
-        process = self._popen(
-            self.command(text),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        with self._lock:
-            self._process = process
-        if wait:
-            process.wait()
+        try:
+            payload = self._request("/speak", {"text": text})
+        except OmniVoiceError as exc:
+            LOG.warning("OmniVoice TTS selhalo; odpověď zůstává textová: %s", exc)
+            return False
+        queued = payload.get("queued") is True
+        if queued:
             with self._lock:
-                if self._process is process:
-                    self._process = None
-        else:
-            threading.Thread(target=self._reap, args=(process,), daemon=True).start()
-        return True
-
-    def _reap(self, process: Any) -> None:
-        process.wait()
-        with self._lock:
-            if self._process is process:
-                self._process = None
+                self._speaking = True
+                self._health_at = self._clock()
+        return queued
 
     def stop(self) -> bool:
-        with self._lock:
-            process = self._process
-            self._process = None
-        if process is None or process.poll() is not None:
+        """Přeruší přehrávání a zahodí čekající OmniVoice frontu."""
+        if not self.enabled:
             return False
-        process.terminate()
         try:
-            process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=1)
-        return True
+            payload = self._request("/stop", {})
+        except OmniVoiceError:
+            return False
+        with self._lock:
+            self._speaking = False
+            self._health_at = self._clock()
+        return bool(payload.get("stopped"))

@@ -1,86 +1,115 @@
 from __future__ import annotations
 
+import json
 import subprocess
-import threading
+import urllib.error
 from types import SimpleNamespace
 
 import pytest
 
 from mike.errors import FeatureDisabledError, PolicyError
 from mike.terminal import ReadOnlyTerminal, extract_voice_command
-from mike.tts import SayTTS
+from mike.tts import OmniVoiceError, OmniVoiceTTS
 
 
-class FakeProcess:
-    def __init__(self, running=True, wait_blocks=False):
-        self.running = running
-        self.wait_blocks = wait_blocks
-        self.terminated = False
-        self.killed = False
-        self.done = threading.Event()
+class JsonResponse:
+    def __init__(self, payload):
+        self.payload = json.dumps(payload).encode("utf-8")
 
-    def poll(self):
-        return None if self.running else 0
+    def read(self):
+        return self.payload
 
-    def wait(self, timeout=None):
-        if self.wait_blocks and self.running:
-            self.done.wait(timeout)
-        self.running = False
-        return 0
+    def __enter__(self):
+        return self
 
-    def terminate(self):
-        self.terminated = True
-        self.running = False
-        self.done.set()
-
-    def kill(self):
-        self.killed = True
-        self.running = False
-        self.done.set()
+    def __exit__(self, *_args):
+        return False
 
 
-def test_say_command_has_no_shell():
-    tts = SayTTS(voice="Zuzana", rate=200, say_path="/usr/bin/say")
-    assert tts.command("Ahoj") == ["/usr/bin/say", "-r", "200", "-v", "Zuzana", "Ahoj"]
-
-
-def test_say_rate_is_bounded():
-    assert SayTTS(rate=1).rate == 80
-    assert SayTTS(rate=999).rate == 500
-
-
-def test_disabled_tts_does_not_spawn():
-    called = []
-    assert not SayTTS(enabled=False, popen=lambda *args, **kwargs: called.append(args)).speak("Ahoj")
-    assert called == []
-
-
-def test_empty_tts_does_not_spawn():
-    called = []
-    assert not SayTTS(popen=lambda *args, **kwargs: called.append(args)).speak("  ")
-    assert called == []
-
-
-def test_tts_uses_argument_list_and_devnull():
+def test_omnivoice_speak_posts_only_text_to_loopback():
     calls = []
-    process = FakeProcess()
 
-    def popen(args, **kwargs):
-        calls.append((args, kwargs))
-        return process
+    def opener(request, **kwargs):
+        calls.append((request, kwargs))
+        return JsonResponse({"queued": True, "pending": 1})
 
-    tts = SayTTS(say_path="fake-say", popen=popen)
-    assert tts.speak("Ahoj", wait=True)
-    assert calls[0][0] == ["fake-say", "-r", "190", "Ahoj"]
-    assert calls[0][1]["stdin"] is subprocess.DEVNULL
+    tts = OmniVoiceTTS("http://127.0.0.1:8130", opener=opener)
+    assert tts.speak("Ahoj")
+    request, kwargs = calls[0]
+    assert request.full_url == "http://127.0.0.1:8130/speak"
+    assert request.get_method() == "POST"
+    assert json.loads(request.data) == {"text": "Ahoj"}
+    assert kwargs["timeout"] == 5.0
 
 
-def test_tts_stop_terminates_process():
-    process = FakeProcess(wait_blocks=True)
-    tts = SayTTS(popen=lambda *_args, **_kwargs: process)
-    tts.speak("Ahoj")
+def test_disabled_or_empty_tts_does_not_call_service():
+    called = []
+
+    def opener(*args, **kwargs):
+        called.append((args, kwargs))
+
+    assert not OmniVoiceTTS("http://127.0.0.1:8130", enabled=False, opener=opener).speak("Ahoj")
+    assert not OmniVoiceTTS("http://127.0.0.1:8130", opener=opener).speak("  ")
+    assert called == []
+
+
+def test_omnivoice_text_is_bounded():
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        return JsonResponse({"queued": True})
+
+    assert OmniVoiceTTS("http://127.0.0.1:8130", opener=opener).speak("x" * 5000)
+    assert len(json.loads(requests[0].data)["text"]) == 4000
+
+
+def test_omnivoice_stop_uses_local_api():
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        return JsonResponse({"stopped": True})
+
+    tts = OmniVoiceTTS("http://127.0.0.1:8130", opener=opener)
     assert tts.stop()
-    assert process.terminated
+    assert requests[0].full_url.endswith("/stop")
+    assert json.loads(requests[0].data) == {}
+
+
+def test_omnivoice_health_and_speaking_cache():
+    calls = []
+    now = [1.0]
+
+    def opener(request, **_kwargs):
+        calls.append(request)
+        return JsonResponse({"ok": True, "speaking": True, "pending": 0})
+
+    tts = OmniVoiceTTS("http://127.0.0.1:8130", opener=opener, clock=lambda: now[0])
+    assert tts.health()["ok"]
+    assert tts.is_speaking
+    assert len(calls) == 1
+    now[0] += 0.3
+    assert tts.is_speaking
+    assert len(calls) == 2
+
+
+def test_omnivoice_failure_keeps_reply_text_only():
+    def offline(*_args, **_kwargs):
+        raise urllib.error.URLError("offline")
+
+    tts = OmniVoiceTTS("http://127.0.0.1:8130", opener=offline)
+    assert not tts.speak("Ahoj")
+    assert not tts.stop()
+    assert not tts.is_speaking
+    with pytest.raises(OmniVoiceError, match="neodpovídá"):
+        tts.health()
+
+
+def test_omnivoice_rejects_unready_health():
+    tts = OmniVoiceTTS("http://127.0.0.1:8130", opener=lambda *_args, **_kwargs: JsonResponse({"ok": False}))
+    with pytest.raises(OmniVoiceError, match="není připravený"):
+        tts.health()
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@
 
 [Kanoninis README čekų kalba](../../README.md). M.I.K.E. yra vietinis atvirojo
 kodo čekų balso asistentas Apple Silicon Mac kompiuteriams. Whisper transkribuoja,
-vietinė Ollama atsako, o macOS `say` perskaito atsakymą. **0.1 versija yra alfa:
+vietinė Ollama atsako, o vietinis OmniVoice jį įgarsina. **0.1.1 versija yra alfa:
 programa, skydelis ir balso komandos yra čekų kalba. Tai visas vadovo, ne
 sąsajos vertimas.** Nenaudokite skubiems, medicininiams, teisiniams ar kitiems
 didelės rizikos sprendimams.
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorch atsarginiam variantui naudokite `.[voice,torch,overlay]`.
 Whisper, Ollama ir kiekvienas modelis turi savo licenciją ir sąlygas.
+OmniVoice veikia atskiroje `.venv-omnivoice`; kodas yra Apache-2.0, tačiau
+numatytasis modelis yra **CC-BY-NC ir neskirtas komerciniam naudojimui**. Jis
+atsisiunčiamas pirmą kartą paleidus paslaugą ir į saugyklą neįtrauktas.
 
 <!-- mike-doc:first-run -->
 ## Pirmasis paleidimas
@@ -52,6 +61,10 @@ voiceprint išjungti; telemetrijos nėra, neapdorotas garsas nesaugomas. Pagrind
 `assistant.model`, `stt.backend`, `stt.model`, `stt.device`, `server.port`,
 `[features]`. `MIKE_HOME` izoliuoja testą, vieši kintamieji turi `MIKE_*`.
 
+OmniVoice naudoja `tts.omnivoice_url = "http://127.0.0.1:8130"`; laukai
+`tts.model`, `tts.instruct`, `tts.num_steps` ir `tts.speed` valdo balso dizainą.
+Viešasis serveris nepriima etaloninio garso ir neklonuoja balso.
+
 Voiceprint sukurkite vietoje:
 `python -m mike.voiceprint /kelias/iki/savo-balso.wav`, tada nustatykite
 `features.voiceprint = true`. Naudokite tik savo balsą arba aiškų kalbėtojo sutikimą.
@@ -72,6 +85,8 @@ Telemetrijos nėra. Dashboard, Ollama, duomenų bazė, transkripcija ir voicepri
 yra vietiniai. Neapdorotas garsas pagal nutylėjimą nesaugomas; privati SQLite
 saugo tekstus, atsakymus, aiškią atmintį ir įvertinimus. Įjungtas research siunčia
 tik aiškią užklausą paieškai ir atrinktoms viešoms HTTPS svetainėms. Žr. [PRIVACY.md](../../PRIVACY.md).
+OmniVoice taip pat vietinis: laikinas sintetinis WAV turi 600 režimą, po
+`afplay` ištrinamas, o serveris nepriima etaloninio balso.
 
 <!-- mike-doc:troubleshooting -->
 ## Trikčių šalinimas
@@ -81,6 +96,8 @@ Pradėkite `mike doctor`. Ollama paleiskite, patikrinkite `ollama list` ir
 `stt.device`; tuščia reikšmė reiškia sistemos įvestį. Jei 8140 užimtas, keiskite
 `server.port`. Seną Whisper Flow/MAJKA stabdykite jos įrankiu. Žurnalai yra
 `~/Library/Application Support/MIKE/logs/`; prieš dalindamiesi pašalinkite asmens duomenis.
+Jei OmniVoice neatsako, paleiskite `./scripts/omnivoice_service.sh status`,
+patikrinkite `omnivoice-error.log` ir `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## Pašalinimas
@@ -89,11 +106,15 @@ Vykdykite `.venv/bin/mike stop` ir `.venv/bin/mike uninstall`. Pašalinamas tik
 LaunchAgent `io.github.emperorkundis.mike`; duomenys lieka atkūrimui. Visiškai
 ištrinti galima po atsarginės kopijos patikros perkeliant
 `~/Library/Application Support/MIKE` į Trash. Senos diegtys neliečiamos.
+`./scripts/omnivoice_service.sh uninstall` pašalina tik atskirą LaunchAgent
+`io.github.emperorkundis.mike.omnivoice`.
 
 <!-- mike-doc:warning -->
 ## Ribojimai ir licencijos
 
-v0.1 palaiko tik Apple Silicon macOS ir čekišką runtime. Tekstas ir atsakymas
+v0.1.1 palaiko tik Apple Silicon macOS ir čekišką runtime. Tekstas ir atsakymas
 gali klysti; svarbias operacijas prižiūri žmogus. Kodas yra MIT, priskyrimai —
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Modeliai, priklausomybės
 ir web šaltiniai turi savo licencijas; dvejetainių failų ir PyPI leidimo nėra.
+Numatytasis OmniVoice modelis yra CC-BY-NC ir neskirtas komercijai; draudžiama
+neteisėta balso imitacija ar sukčiavimas.

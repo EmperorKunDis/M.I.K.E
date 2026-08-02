@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from .errors import ConfigError
 from .paths import AppPaths, secure_file
 
-DEFAULT_CONFIG = """# M.I.K.E. v0.1 — aplikace a hlasové povely jsou česky.
+DEFAULT_CONFIG = """# M.I.K.E. v0.1.1 — aplikace a hlasové povely jsou česky.
 # Ve výchozím stavu nic neposílá na internet a neukládá surové audio.
 
 [assistant]
@@ -33,8 +33,11 @@ max_utterance_ms = 30000
 
 [tts]
 enabled = true
-voice = ""
-rate = 190
+omnivoice_url = "http://127.0.0.1:8130"
+model = "k2-fsa/OmniVoice"
+instruct = "male, middle-aged, low pitch"
+num_steps = 32
+speed = 1.0
 
 [server]
 host = "127.0.0.1"
@@ -76,8 +79,11 @@ class SttConfig:
 @dataclass(frozen=True)
 class TtsConfig:
     enabled: bool = True
-    voice: str = ""
-    rate: int = 190
+    omnivoice_url: str = "http://127.0.0.1:8130"
+    model: str = "k2-fsa/OmniVoice"
+    instruct: str = "male, middle-aged, low pitch"
+    num_steps: int = 32
+    speed: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -141,6 +147,18 @@ def _int(value: Any, name: str, low: int, high: int) -> int:
     return value
 
 
+def _float(value: Any, name: str, low: float, high: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not low <= float(value) <= high:
+        raise ConfigError(f"{name} musí být číslo {low}–{high}.")
+    return float(value)
+
+
+def _text(value: Any, name: str, max_length: int) -> str:
+    if not isinstance(value, str) or not value.strip() or len(value.strip()) > max_length:
+        raise ConfigError(f"{name} musí být neprázdný text do {max_length} znaků.")
+    return value.strip()
+
+
 def _local_ollama_url(value: str) -> str:
     parsed = urlparse(value)
     if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
@@ -151,6 +169,21 @@ def _local_ollama_url(value: str) -> str:
         raise ConfigError("assistant.ollama_url musí mířit na lokální Ollamu.")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ConfigError("assistant.ollama_url nesmí obsahovat přihlašovací údaje ani query.")
+    return value.rstrip("/")
+
+
+def _local_omnivoice_url(value: str) -> str:
+    parsed = urlparse(value)
+    if parsed.scheme != "http" or parsed.hostname != "127.0.0.1":
+        raise ConfigError("tts.omnivoice_url musí mířit na http://127.0.0.1.")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+        raise ConfigError("tts.omnivoice_url nesmí obsahovat cestu, přihlašovací údaje ani query.")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ConfigError("tts.omnivoice_url obsahuje neplatný port.") from exc
+    if port is None:
+        raise ConfigError("tts.omnivoice_url musí obsahovat port.")
     return value.rstrip("/")
 
 
@@ -216,8 +249,13 @@ def load_config(
         ),
         tts=TtsConfig(
             enabled=_bool(tts.get("enabled", True), "tts.enabled"),
-            voice=str(tts.get("voice", "")),
-            rate=_int(tts.get("rate", 190), "tts.rate", 80, 500),
+            omnivoice_url=_local_omnivoice_url(
+                values.get("MIKE_OMNIVOICE_URL", str(tts.get("omnivoice_url", "http://127.0.0.1:8130")))
+            ),
+            model=_text(tts.get("model", "k2-fsa/OmniVoice"), "tts.model", 200),
+            instruct=_text(tts.get("instruct", "male, middle-aged, low pitch"), "tts.instruct", 200),
+            num_steps=_int(tts.get("num_steps", 32), "tts.num_steps", 8, 64),
+            speed=_float(tts.get("speed", 1.0), "tts.speed", 0.5, 2.0),
         ),
         server=ServerConfig(
             host=host,

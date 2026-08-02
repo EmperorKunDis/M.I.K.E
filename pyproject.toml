@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mike-assistant"
-version = "0.1.0"
+version = "0.1.1"
 description = "Soukromý lokální český hlasový asistent pro macOS Apple Silicon"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -35,6 +35,12 @@ voice = [
 mlx = ["mlx-whisper>=0.4.2,<1"]
 torch = ["openai-whisper>=20250625"]
 overlay = ["pyobjc-framework-Cocoa>=10,<12"]
+omnivoice = [
+  "omnivoice==0.2.1",
+  "soundfile>=0.13,<1",
+  "torch>=2.8,<3",
+  "torchaudio>=2.8,<3",
+]
 dev = [
   "httpx>=0.27,<1",
   "pip-audit>=2.7,<3",

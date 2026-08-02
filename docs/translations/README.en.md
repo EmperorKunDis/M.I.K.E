@@ -2,7 +2,7 @@
 
 [Canonical Czech README](../../README.md). M.I.K.E. is a local open-source Czech
 voice assistant for Apple Silicon Macs. Whisper transcribes speech, a local
-Ollama model answers, and macOS `say` provides speech. **Version 0.1 is alpha:
+Ollama model answers, and local OmniVoice provides speech. **Version 0.1.1 is alpha:
 the application, dashboard, and voice commands are in Czech; this is a complete
 translation of the guide, not of the runtime.** Do not use it for emergency,
 medical, legal, or other high-risk decisions.
@@ -23,11 +23,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 Use `.[voice,torch,overlay]` for the OpenAI Whisper/PyTorch fallback. Whisper,
 Ollama, and each model have separate licenses and terms that you must review.
+OmniVoice runs in the separate `.venv-omnivoice`; its code is Apache-2.0, but
+the default model is **CC-BY-NC and not for commercial use**. It downloads on
+the service's first start and is never bundled here.
 
 <!-- mike-doc:first-run -->
 ## First run
@@ -57,6 +66,10 @@ audio). Main fields are `assistant.model`, `stt.backend`, `stt.model`,
 `stt.device`, `server.port`, and `[features]`. Public environment overrides use
 only `MIKE_*`; `MIKE_HOME` is useful for isolated testing.
 
+OmniVoice uses `tts.omnivoice_url = "http://127.0.0.1:8130"`; `tts.model`,
+`tts.instruct`, `tts.num_steps`, and `tts.speed` control voice design. The
+public server accepts no reference audio and provides no voice-cloning mode.
+
 To enable voiceprint recognition, first create a local embedding with
 `python -m mike.voiceprint /path/to/your-own-voice.wav`, then set
 `features.voiceprint = true`. Use only your own voice or a recording with the
@@ -81,6 +94,8 @@ voiceprint are local. Raw audio is not stored by default; transcripts, replies,
 explicit memory, and ratings are stored in a private SQLite database. Enabling
 research sends the explicit query to a search provider and selected public
 HTTPS sites. See [PRIVACY.md](../../PRIVACY.md) for retention and deletion.
+OmniVoice creates a mode-600 synthetic WAV only for playback and deletes it
+after `afplay`; the public server accepts no reference voice.
 
 <!-- mike-doc:troubleshooting -->
 ## Troubleshooting
@@ -91,6 +106,8 @@ and `stt.device`; an empty device selects the system default. Change
 `server.port` if 8140 is busy. Stop an older Whisper Flow/MAJKA installation
 with its own tool. Logs are under `~/Library/Application Support/MIKE/logs/`;
 remove transcripts and personal data before sharing them.
+If OmniVoice fails, run `./scripts/omnivoice_service.sh status`, inspect
+`omnivoice-error.log`, and verify `tts.omnivoice_url`.
 
 <!-- mike-doc:uninstall -->
 ## Uninstallation
@@ -99,13 +116,16 @@ Run `.venv/bin/mike stop` and `.venv/bin/mike uninstall`. This removes only the
 LaunchAgent `io.github.emperorkundis.mike` and preserves data for recovery. To
 delete data, move `~/Library/Application Support/MIKE` to Trash after checking
 your backup. Legacy installations remain untouched.
+Run `./scripts/omnivoice_service.sh uninstall` to remove only the separate
+`io.github.emperorkundis.mike.omnivoice` LaunchAgent.
 
 <!-- mike-doc:warning -->
 ## Limitations and licenses
 
-v0.1 supports only Apple Silicon macOS and a Czech runtime. Transcriptions and
+v0.1.1 supports only Apple Silicon macOS and a Czech runtime. Transcriptions and
 answers may be wrong, and a human must supervise any consequential decision.
 The source is MIT-licensed; inherited attribution is in
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Models, dependencies,
 and web sources keep their own licenses. No binaries or PyPI package are
-published for v0.1.
+published for v0.1.1. The default OmniVoice model is CC-BY-NC and not for
+commercial use; never use it for unauthorized impersonation or fraud.

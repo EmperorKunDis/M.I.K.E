@@ -2,8 +2,8 @@
 
 [Կանոնական չեխերեն README](../../README.md)։ M.I.K.E.-ը տեղային, բաց կոդով
 չեխերեն ձայնային օգնական է Apple Silicon Mac-ի համար։ Whisper-ը խոսքը
-վերծանում է, տեղային Ollama-ն պատասխանում է, իսկ macOS `say`-ը կարդում է
-պատասխանը։ **0.1 տարբերակը alpha է. ծրագիրը, վահանակը և ձայնային հրամանները
+վերծանում է, տեղային Ollama-ն պատասխանում է, իսկ տեղային OmniVoice-ը հնչեցնում է
+պատասխանը։ **0.1.1 տարբերակը alpha է. ծրագիրը, վահանակը և ձայնային հրամանները
 չեխերեն են։ Սա ամբողջ ուղեցույցի, ոչ թե միջերեսի թարգմանությունն է։** Մի
 օգտագործեք արտակարգ, բժշկական, իրավական կամ բարձր ռիսկով որոշումների համար։
 
@@ -22,11 +22,20 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e ".[voice,mlx,overlay]"
 ollama pull gemma3:12b
 .venv/bin/mike install
+
+python3.12 -m venv .venv-omnivoice
+.venv-omnivoice/bin/python -m pip install --upgrade pip
+.venv-omnivoice/bin/pip install -e ".[omnivoice]"
+./scripts/omnivoice_service.sh install
+
 .venv/bin/mike doctor
 ```
 
 OpenAI Whisper/PyTorch fallback-ի համար օգտագործեք `.[voice,torch,overlay]`։
 Whisper-ը, Ollama-ն և յուրաքանչյուր մոդել ունեն առանձին լիցենզիա ու պայմաններ։
+OmniVoice-ը գործում է առանձին `.venv-omnivoice` միջավայրում. կոդը Apache-2.0 է,
+իսկ կանխադրված մոդելը՝ **CC-BY-NC և ոչ առևտրային օգտագործման համար**։ Այն
+ներբեռնվում է ծառայության առաջին գործարկման ժամանակ և պահոցում ներառված չէ։
 
 <!-- mike-doc:first-run -->
 ## Առաջին գործարկում
@@ -53,6 +62,10 @@ Research-ը, terminal-ը և voiceprint-ը անջատված են, telemetry չկ�
 `stt.device`, `server.port`, `[features]`։ `MIKE_HOME`-ը մեկուսացնում է թեստը,
 հանրային փոփոխականները `MIKE_*` են։
 
+OmniVoice-ը օգտագործում է `tts.omnivoice_url = "http://127.0.0.1:8130"`։
+`tts.model`, `tts.instruct`, `tts.num_steps` և `tts.speed` դաշտերը կառավարում են
+ձայնի դիզայնը։ Հանրային սերվերը հղումային աուդիո չի ընդունում և ձայն չի կլոնավորում։
+
 Voiceprint-ը ստեղծեք տեղային՝
 `python -m mike.voiceprint /ուղի/ձեր-ձայնին.wav`, ապա միացրեք
 `features.voiceprint = true`։ Օգտագործեք միայն սեփական ձայնը կամ հստակ համաձայնություն։
@@ -74,6 +87,8 @@ Telemetry չկա։ Dashboard-ը, Ollama-ն, բազան, transcription-ը և voic
 պատասխանները, բացահայտ հիշողությունն ու գնահատականները։ Միացված research-ը
 միայն բացահայտ հարցումն է ուղարկում որոնիչին և ընտրված public HTTPS կայքերին։
 Տես [PRIVACY.md](../../PRIVACY.md)։
+OmniVoice-ը նույնպես տեղային է. ժամանակավոր սինթետիկ WAV-ը 600 ռեժիմով է,
+`afplay`-ից հետո ջնջվում է, իսկ սերվերը հղումային ձայն չի ընդունում։
 
 <!-- mike-doc:troubleshooting -->
 ## Խնդիրների լուծում
@@ -83,6 +98,8 @@ Telemetry չկա։ Dashboard-ը, Ollama-ն, բազան, transcription-ը և voic
 դատարկ արժեքը system input է։ Զբաղված 8140-ի դեպքում փոխեք `server.port`։ Հին
 Whisper Flow/MAJKA-ն կանգնեցրեք իր գործիքով։ Log-երը
 `~/Library/Application Support/MIKE/logs/`-ում են. կիսվելուց առաջ հանեք անձնական տվյալները։
+Եթե OmniVoice-ը չի պատասխանում, գործարկեք `./scripts/omnivoice_service.sh status`,
+ստուգեք `omnivoice-error.log`-ը և `tts.omnivoice_url`-ը։
 
 <!-- mike-doc:uninstall -->
 ## Հեռացում
@@ -91,11 +108,15 @@ Whisper Flow/MAJKA-ն կանգնեցրեք իր գործիքով։ Log-երը
 LaunchAgent `io.github.emperorkundis.mike`-ը, տվյալները մնում են վերականգնման
 համար։ Լրիվ ջնջելու համար backup-ը ստուգելուց հետո
 `~/Library/Application Support/MIKE` պանակը տեղափոխեք Trash։ Հին տեղադրումը չի փոխվում։
+`./scripts/omnivoice_service.sh uninstall`-ը հեռացնում է միայն առանձին
+`io.github.emperorkundis.mike.omnivoice` LaunchAgent-ը։
 
 <!-- mike-doc:warning -->
 ## Սահմանափակումներ և լիցենզիաներ
 
-v0.1-ը աջակցում է միայն Apple Silicon macOS և չեխերեն runtime։ Տեքստն ու
+v0.1.1-ը աջակցում է միայն Apple Silicon macOS և չեխերեն runtime։ Տեքստն ու
 պատասխանը կարող են սխալ լինել. կարևոր գործողությունները վերահսկում է մարդը։
 Կոդը MIT է, վերագրումները՝ [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)։
 Մոդելները, dependencies-ը և web աղբյուրներն ունեն իրենց լիցենզիաները. binary և PyPI չկան։
+Կանխադրված OmniVoice մոդելը CC-BY-NC է և առևտրային օգտագործման համար չէ.
+արգելվում են չարտոնված ձայնային նմանակումն ու խարդախությունը։

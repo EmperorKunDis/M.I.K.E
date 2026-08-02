@@ -22,7 +22,7 @@ SKIP_PARTS = {
     "dist",
 }
 SKIP_NAMES = {".coverage"}
-TEXT_SUFFIXES = {"", ".md", ".py", ".toml", ".yml", ".yaml", ".txt", ".sh", ".json"}
+TEXT_SUFFIXES = {"", ".md", ".py", ".toml", ".yml", ".yaml", ".txt", ".sh", ".json", ".plist", ".template"}
 BINARY_SUFFIXES = {
     ".pt",
     ".pth",
@@ -62,7 +62,6 @@ GLOBAL_PATTERNS = {
                 "Ros" + "omak",
                 "No" + "vas",
                 "No" + "vac",
-                "Omni" + "Voice",
                 "Eleven" + "Labs",
                 "Co" + "dex",
             )
@@ -74,8 +73,32 @@ GLOBAL_PATTERNS = {
 SOURCE_PATTERNS = {
     "named end user": re.compile(r"\bMartin(?:a|ovi|ův|ovo|em)?\b", re.IGNORECASE),
     "old personal data directory": re.compile("Whisper" + "FlowLogs", re.IGNORECASE),
+    "voice cloning API parameter": re.compile(
+        r"\b(?:" + "ref_" + r"audio|" + "ref_" + r"text)\b"
+    ),
 }
-TRANSLATIONS = ("en", "uk", "be", "ro", "et", "lv", "lt", "ka", "hy", "az", "kk", "ky", "tg", "tk", "uz")
+TRANSLATIONS = (
+    "en",
+    "uk",
+    "be",
+    "pl",
+    "sk",
+    "de",
+    "hu",
+    "bg",
+    "ro",
+    "et",
+    "lv",
+    "lt",
+    "ka",
+    "hy",
+    "az",
+    "kk",
+    "ky",
+    "tg",
+    "tk",
+    "uz",
+)
 DOC_MARKERS = (
     "install",
     "first-run",
@@ -121,7 +144,7 @@ def scan() -> list[str]:
         for label, pattern in GLOBAL_PATTERNS.items():
             if pattern.search(text):
                 errors.append(f"{label}: {relative}")
-        if relative.parts and relative.parts[0] in {"src", "tests"}:
+        if relative.parts and relative.parts[0] in {"src", "scripts", "tests"}:
             for label, pattern in SOURCE_PATTERNS.items():
                 if pattern.search(text):
                     errors.append(f"{label}: {relative}")
@@ -151,7 +174,11 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
     if not args.quiet:
-        print(f"Public repository gate passed: {len(files())} files, 16 complete language guides.")
+        guide_count = 1 + len(TRANSLATIONS)
+        print(
+            f"Public repository gate passed: {len(files())} files, "
+            f"{guide_count} complete language guides."
+        )
     return 0
 
 
